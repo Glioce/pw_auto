@@ -4,6 +4,13 @@ PowherWheels modificado que se estaciona automáticamente.
 El cerebro del vehículo es una TIVA C EK-TM4C1294XL  
 https://www.ti.com/tool/EK-TM4C1294XL  
 
+> Tiva C Series
+> Connected LaunchPad
+> Booster Pack 2
+> TM4C1294
+> EK - TM4C1294XL
+> ARM Cortex M4F-Based
+
 Se puede programar con las herramientas que proporciona Texas Instruments o con Energia IDE  
 CCS IDE https://www.ti.com/tool/CCSTUDIO  
 TivaWare https://www.ti.com/tool/SW-TM4C  
