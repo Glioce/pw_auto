@@ -1,0 +1,545 @@
+//#define PART_TM4C123GH6PM
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "stdlib.h"
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+#include "inc/hw_timer.h"
+#include "inc/hw_uart.h"
+#include "inc/hw_gpio.h"
+#include "inc/hw_pwm.h"
+#include "inc/hw_types.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/timer.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/uart.h"
+#include "driverlib/udma.h"
+#include "driverlib/pwm.h"
+#include "driverlib/ssi.h"
+#include "driverlib/systick.h"
+#include "driverlib/debug.h"
+#include "driverlib/fpu.h"
+#include "utils/uartstdio.c"
+#include <string.h>
+#include "driverlib/qei.h"
+
+
+void inputInt0();
+void inputInt1();
+void inputInt2();
+void Captureinit0();
+void Captureinit1();
+void Captureinit2();
+
+void InitConsole(void);
+void pwm(void);
+void uart(void);
+void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count);
+
+
+//Esta variable es para no hacer cada vez el calculo en cada lectura
+const double temp = 1.0/80.0;
+
+//Almacena la longitud del pulso
+volatile uint32_t distancia0=0, distancia1=0, distancia2=0;
+
+volatile int qeiPosition;
+//Indica el código principal si se está leyendo un pulso en ese momento
+volatile int8_t echowait0=0, echowait1=0, echowait2=0;
+
+
+void pinesa0()
+{
+  //Configurar el pin de activación trigger
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_3);
+
+  //Configura el pin  Echo
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_2);
+  GPIOIntEnable(GPIO_PORTA_BASE, GPIO_PIN_2);
+  GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_2,GPIO_BOTH_EDGES);
+  GPIOIntRegister(GPIO_PORTA_BASE,inputInt0);
+}
+
+void pinesa1()
+{
+  //Configure el pin de disparo
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_5);
+
+  //Configura el pin Echo
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_4);
+  GPIOIntEnable(GPIO_PORTA_BASE, GPIO_PIN_4);
+  GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_4,GPIO_BOTH_EDGES);
+  GPIOIntRegister(GPIO_PORTA_BASE,inputInt1);
+}
+
+void pinesa2()
+{
+  //Configura el pin de ac tivacion triiger
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_7);
+
+  //Configura el pin echo
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+  SysCtlDelay(3);
+  GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_6);
+  GPIOIntEnable(GPIO_PORTA_BASE, GPIO_PIN_6);
+  GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_6,GPIO_BOTH_EDGES);
+  GPIOIntRegister(GPIO_PORTA_BASE,inputInt2);
+}
+
+void sensor0()
+{
+   //Configurar el UART
+
+	pinesa0();
+  Captureinit0();
+      //Comprueba si el pulso está en curso
+    if(echowait0 != 1)
+    {
+      //El pulso requerido de 10uS
+      GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_3, GPIO_PIN_3);
+      SysCtlDelay(266);
+      GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_3, ~GPIO_PIN_3);
+
+      /*
+        Esto hace que el código espere a que termine una lectura
+         Puede omitir esta parte si desea que el código sea no bloqueador pero
+         La lectura sólo está lista cuando echowait = 0.*/
+
+      while(echowait0 != 0);
+
+      //Convierte el valor del contador en cm.
+      distancia0 =(int32_t)(temp * distancia0);
+      distancia0 = distancia0 / 58;
+
+    }
+
+}
+void sensor1()
+{
+	pinesa1();
+  Captureinit1();
+  if(echowait1 != 1)
+     {
+     GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_5, GPIO_PIN_5);
+     SysCtlDelay(266);
+     GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_5, ~GPIO_PIN_5);
+     while(echowait1 != 0);
+     distancia1 =(int32_t)(temp * distancia1);
+     distancia1 = distancia1 / 58;
+     //return (distancia1);
+      }
+}
+void sensor2(distancia2)
+{
+	pinesa2();
+   Captureinit2();
+   if(echowait2 != 1)
+      {
+       GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_PIN_7);
+       SysCtlDelay(266);
+       GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, ~GPIO_PIN_7);
+       while(echowait2 != 0);
+       distancia2 =(int32_t)(temp * distancia2);
+       distancia2 = distancia2 / 58;
+       }
+}
+   int main(void)
+  {
+	  SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+	  InitConsole();
+	 
+
+while(1)
+{
+
+	  UARTprintf("Distancia trasera %d cm",distancia0);
+	  UARTprintf("Distancia delantera %d cm",distancia1);
+	  UARTprintf("Distancia hueco %d cm",distancia2);
+	  SysCtlDelay(400000);
+
+}
+  }
+
+
+
+void inputInt0()
+{
+  //Borrar indicador de interrupción. Ya que sólo habilitado en esto es suficiente
+  GPIOIntClear(GPIO_PORTA_BASE, GPIO_PIN_2);
+
+  /*
+
+Si es un flanco ascendente entonces ajuste el temporizador a 0
+     Está en modo periódico por lo que fue en algún valor aleatorio
+  */
+  if ( GPIOPinRead(GPIO_PORTA_BASE, GPIO_PIN_2) == GPIO_PIN_2){
+	HWREG(TIMER1_BASE + TIMER_O_TAV) = 0; //Loads value 0 into the timer.
+    TimerEnable(TIMER1_BASE,TIMER_A);
+    echowait0=1;
+  }
+  /*
+    Si es un borde descendente que fue detectado,
+    a continuación, obtener el valor del contador
+  */
+  else{
+    distancia0 = TimerValueGet(TIMER1_BASE,TIMER_A); //record value
+    TimerDisable(TIMER1_BASE,TIMER_A);
+    echowait0=0;
+  }
+
+
+}
+
+void inputInt1(){
+  //Borrar indicador de interrupción. Ya que sólo habilitado en esto es suficiente
+  GPIOIntClear(GPIO_PORTA_BASE, GPIO_PIN_4);
+
+  /*
+    Si es un flanco ascendente entonces ajuste el temporizador a 0
+     Está en modo periódico por lo que fue en algún valor aleatorio
+  */
+  if ( GPIOPinRead(GPIO_PORTA_BASE, GPIO_PIN_4) == GPIO_PIN_4){
+	HWREG(TIMER2_BASE + TIMER_O_TAV) = 0; //Loads value 0 into the timer.
+    TimerEnable(TIMER2_BASE,TIMER_A);
+    echowait1=1;
+  }
+  /*
+    Si es un borde descendente que fue detectado, a continuación, obtener el valor del contador
+  */
+  else{
+    distancia1 = TimerValueGet(TIMER2_BASE,TIMER_A); //record value
+    TimerDisable(TIMER2_BASE,TIMER_A);
+    echowait1=0;
+  }
+
+
+}
+
+void inputInt2(){
+	//Borrar indicador de interrupción. Ya que sólo habilitado en esto es suficiente
+  GPIOIntClear(GPIO_PORTA_BASE, GPIO_PIN_6);
+
+  /*
+   Si es un flanco ascendente entonces ajuste el temporizador a 0
+     Está en modo periódico por lo que fue en algún valor aleatorio
+  */
+  if ( GPIOPinRead(GPIO_PORTA_BASE, GPIO_PIN_6) == GPIO_PIN_6){
+	HWREG(TIMER3_BASE + TIMER_O_TAV) = 0; //Loads value 0 into the timer.
+    TimerEnable(TIMER3_BASE,TIMER_A);
+    echowait2=1;
+  }
+  /*
+    Si es un borde descendente que fue detectado, a continuación, obtener el valor del contador
+  */
+  else{
+    distancia2 = TimerValueGet(TIMER3_BASE,TIMER_A); //record value
+    TimerDisable(TIMER3_BASE,TIMER_A);
+    echowait2=0;
+  }
+
+
+}
+
+void Captureinit0(){
+  /*
+    Ajuste el temporizador para que sea periódico.
+  */
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+  SysCtlDelay(3);
+  TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC_UP);
+  TimerEnable(TIMER1_BASE,TIMER_A);
+}
+
+void Captureinit1(){
+  /*
+   Ajuste el temporizador para que sea periódico.
+  */
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
+  SysCtlDelay(3);
+  TimerConfigure(TIMER2_BASE, TIMER_CFG_PERIODIC_UP);
+  TimerEnable(TIMER2_BASE,TIMER_A);
+}
+
+void Captureinit2(){
+  /*
+   Ajuste el temporizador para que sea periódico.
+  */
+  SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);
+  SysCtlDelay(3);
+  TimerConfigure(TIMER3_BASE, TIMER_CFG_PERIODIC_UP);
+  TimerEnable(TIMER3_BASE,TIMER_A);
+}
+
+#ifdef DEBUG
+void
+__error__(char *pcFilename, uint32_t ui32Line)
+{
+}
+#endif
+
+
+void
+UARTIntHandler(void)
+{
+    uint32_t ui32Status;
+
+    //
+    // Get the interrrupt status.
+    //
+    ui32Status = UARTIntStatus(UART0_BASE, true);
+
+    //
+    // Clear the asserted interrupts.
+    //
+    UARTIntClear(UART0_BASE, ui32Status);
+
+    //
+    // Loop while there are characters in the receive FIFO.
+    //
+    while(UARTCharsAvail(UART0_BASE))
+    {
+        //
+        // Read the next character from the UART and write it back to the UART.
+        //
+        UARTCharPutNonBlocking(UART0_BASE,
+                                   UARTCharGetNonBlocking(UART0_BASE));
+        uint32_t r;
+        //
+        // Blink the LED to show a character transfer is occuring.
+        //
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2);
+
+        //
+        // Delay for 1 millisecond.  Each SysCtlDelay is about 3 clocks.
+        //
+        SysCtlDelay(SysCtlClockGet() / (1000 * 3));
+r= UARTCharGetNonBlocking(UART0_BASE);
+UARTChartPut(UART0_BASE,r);
+UARTChartPut(UART0_BASE,r>>8);
+if(r==12)
+{
+	
+	
+}
+        //
+        // Turn off the LED
+        //
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0);
+
+    }
+}
+
+//*****************************************************************************
+//
+// Send a string to the UART.
+//
+//*****************************************************************************
+void
+UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
+{
+    //
+    // Loop while there are more characters to send.
+    //
+    while(ui32Count--)
+    {
+        //
+        // Write the next character to the UART.
+        //
+        UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
+    }
+}
+
+
+
+void delayMS(int ms) {
+    SysCtlDelay( (SysCtlClockGet()/(3*1000))*ms ) ;
+}
+
+
+void pwm(void)
+{
+    uint32_t period = 5000; //20ms (16Mhz / 64pwm_divider / 50) 5000
+    uint32_t duty = 250;    //1.5ms pulse width
+ //Configure PWM Clock divide system clock by 64
+   SysCtlPWMClockSet(SYSCTL_PWMDIV_64);
+
+   // Enable the peripherals used by this program.
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);  //The Tiva Launchpad has two modules (0 and 1). Module 1 covers the LED pins
+
+    //Configure PF1,PF2,PF3 Pins as PWM
+    GPIOPinConfigure(GPIO_PF1_M1PWM5);
+    //GPIOPinConfigure(GPIO_PF2_M1PWM6);
+    //GPIOPinConfigure(GPIO_PF3_M1PWM7);
+    GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+
+    //Configure PWM Options
+    //PWM_GEN_2 Covers M1PWM4 and M1PWM5
+    //PWM_GEN_3 Covers M1PWM6 and M1PWM7
+    PWMGenConfigure(PWM1_BASE, PWM_GEN_2, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+    PWMGenConfigure(PWM1_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+
+    //Set the Period (expressed in clock ticks)
+    PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, period);
+    PWMGenPeriodSet(PWM1_BASE, PWM_GEN_3, period);
+
+    //Set PWM duty
+    PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5,duty);
+    PWMPulseWidthSet(PWM1_BASE, PWM_OUT_6,duty);
+    PWMPulseWidthSet(PWM1_BASE, PWM_OUT_7,duty);
+
+    // Enable the PWM generator
+    PWMGenEnable(PWM1_BASE, PWM_GEN_2);
+    PWMGenEnable(PWM1_BASE, PWM_GEN_3);
+
+    // Turn on the Output pins
+    PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT | PWM_OUT_6_BIT | PWM_OUT_7_BIT, true);
+
+}
+
+void uart(void)
+{
+    /*Habilitar apilamiento perezoso para controladores de interrupción. Esto permite que el punto flotante
+	  instrucciones para ser usadas en los manejadores de interrupciones, pero a expensas de
+	  uso extra de la pila.*/
+    FPUEnable();
+    FPULazyStackingEnable();
+    /*
+     Habilta el puerto F para los leds
+   */
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+
+    /*
+     Habilita los pines para el led  PF2
+    */
+    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_4);
+
+    /*
+	habilita el periferico para el uart0.
+    */
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+
+    /*
+     Activar interrupciones del procesador.
+    */
+    IntMasterEnable();
+
+    /*
+     Establezca GPIO A0 y A1 como pines UART.
+    */
+    GPIOPinConfigure(GPIO_PA0_U0RX);
+    GPIOPinConfigure(GPIO_PA1_U0TX);
+    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+    /*
+     Configura el uart a 9600 , 8-N-1 operation.
+    */
+    UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 9600,
+                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                             UART_CONFIG_PAR_NONE));
+
+    /*
+    Activa la interrupcon del UART
+    */
+    IntEnable(INT_UART0);
+    UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_RT);
+    /*
+     Solicitar la introducción del texto.
+    */
+
+}
+
+void qei(void) {
+
+	// Set the clocking to run directly from the crystal.
+	//SysCtlClockSet(SYSCTL_SYSDIV_4|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN);
+
+	// Enable QEI Peripherals
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_QEI0);
+
+	//Unlock GPIOD7 - Like PF0 its used for NMI - Without this step it doesn't work
+	HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY; //In Tiva include this is the same as "_DD" in older versions (0x4C4F434B)
+	HWREG(GPIO_PORTD_BASE + GPIO_O_CR) |= 0x80;
+	HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = 0;
+
+	//Set Pins to be PHA0 and PHB0
+	GPIOPinConfigure(GPIO_PD6_PHA0);
+	GPIOPinConfigure(GPIO_PD7_PHB0);
+
+	//Set GPIO pins for QEI. PhA0 -> PD6, PhB0 ->PD7. I believe this sets the pull up and makes them inputs
+	GPIOPinTypeQEI(GPIO_PORTD_BASE, GPIO_PIN_6 |  GPIO_PIN_7);
+
+	//DISable peripheral and int before configuration
+	QEIDisable(QEI0_BASE);
+	QEIIntDisable(QEI0_BASE,QEI_INTERROR | QEI_INTDIR | QEI_INTTIMER | QEI_INTINDEX);
+
+	// Configure quadrature encoder, use an arbitrary top limit of 1000
+	QEIConfigure(QEI0_BASE, (QEI_CONFIG_CAPTURE_A_B  | QEI_CONFIG_NO_RESET 	| QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), 1000);
+
+	// Enable the quadrature encoder.
+	QEIEnable(QEI0_BASE);
+
+	//Set position to a middle value so we can see if things are working
+	QEIPositionSet(QEI0_BASE, 500);
+
+	//Add qeiPosition as a watch expression to see the value inc/dec
+	while (1) //This is the main loop of the program
+	{
+		qeiPosition = QEIPositionGet(QEI0_BASE);
+		SysCtlDelay (1000);
+	}
+}
+
+
+
+
+void InitConsole(void)
+{
+      /*
+      Active el puerto A de GPIO que se utiliza para los pines UART0.
+     TODO: cambia esto al puerto GPIO que estés usando.
+   */
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    SysCtlDelay(3);
+
+    /*
+       Configure el pin muxing para funciones UART0 en el puerto A0 y A1.
+       Este paso no es necesario si su parte no soporta muxing de clavijas.
+       TODO: cambia esto para seleccionar el puerto / pin que estás utilizando.
+    */
+    GPIOPinConfigure(GPIO_PA0_U0RX);
+    GPIOPinConfigure(GPIO_PA1_U0TX);
+     //Habilite UART0 para que podamos configurar el reloj.
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    // Utilice el oscilador interno de 16MHz como fuente de reloj UART.
+    UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
+
+    /*
+   Seleccione la función alternativa (UART) para estos pines.
+   TODO: cambia esto para seleccionar el puerto / pin que estás utilizando.
+         */
+    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+    /*
+     Inicialice el UART para E / S de consola.
+   */
+    UARTStdioConfig(0, 115200, 16000000);
+
+}
