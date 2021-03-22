@@ -81,3 +81,72 @@ sin embargo, se usan los 4 sensores todo el tiempo. Si se detecta un objeto cerc
 ----
 ¿Ejemplo BLE?  
 https://www.ti.com/tool/TIDM-TM4C129XBLE  
+
+----
+## Notas
+
+Torque de wiper motor  
+https://www.youtube.com/watch?v=hoxBkrD4xCo  
+
+Ideas para wiper motor  
+http://www.scary-terry.com/wipmtr/wipmtr2.htm  
+
+L298 datasheet  
+https://www.sparkfun.com/datasheets/Robotics/L298_H_Bridge.pdf  
+
+IBT_2 tienada invento  
+https://web.inventoteca.com/shop/product/puente-h-ibt-2-arduino-278?search=ibt  
+http://www.hessmer.org/blog/2013/12/28/ibt-2-h-bridge-with-arduino/  
+
+BTS7960  
+https://www.handsontec.com/dataspecs/module/BTS7960%20Motor%20Driver.pdf  
+https://articulo.mercadolibre.com.mx/MLM-613082284-modulo-puente-h-bts7960-43a-arduino-pic-_JM  
+
+Puente H TIP41  
+https://articulo.mercadolibre.com.mx/MLM-559425400-puente-h-4-amps-3-36-v-arduino-pic-robot-_JM  
+https://www.youtube.com/watch?v=dnmWR5z8qPU  
+
+Teoría Puente H con transistores de potencia  
+http://tecnobotica.com/index.php/diplomados/tutoriales/41-puente-h-con-transistores  
+https://www.diarioelectronicohoy.com/blog/el-puente-h-h-bridge  
+http://salvador.maciashernandez.com/Proyectos/PuenteH/PuenteH.htm  
+https://www.neoteo.com/puente-h-con-mosfet-para-motores-cc/  
+
+Servos  
+https://servodatabase.com/servo/towerpro/mg995  
+https://servodatabase.com/servo/futaba/s3004  
+
+### Varios videos
+
+Ejemplo de carrito modificado. No tiene mucha info de la parte mecánica, pero explica el tipo de motores utilizados y las conexiones  
+https://www.youtube.com/watch?v=AcVkwMPjTos  
+
+https://www.youtube.com/watch?v=kzbhZqHqDM4  
+También recomienda actuador lineal para la dirección  
+
+https://www.youtube.com/watch?v=bRXtnwlUMdg  
+Mejor detalle del actuador lineal  
+
+https://www.youtube.com/watch?v=jNAeYGaALlQ  
+Versión con servo. El carro es pequeño  
+
+https://www.youtube.com/watch?v=kbLrQpJD--s  
+Polea, alambre y motorreductor de la ventana de un Chevy Cavalier  
+No menciona el sensor que utiliza para saber la posición del motor  
+https://imgur.com/a/JXyOk  
+Diagrama  
+
+https://www.youtube.com/watch?v=n1nEr1FM19E  
+Usar circuito de servo para controlar otro motorreductor  
+
+https://www.youtube.com/watch?v=bURsvNdro4o  
+Convertir motor de limpia parabrisas a servo  
+
+https://www.youtube.com/watch?v=bi74u1eqCec  
+Usa motor de regulador de ventana  
+
+https://www.youtube.com/watch?v=spRwU4s4rTw  
+Motor de limpia parabrisas convertido a servo  
+
+https://www.youtube.com/watch?v=T5xMn2v7UGc  
+Otra conversión de motor de limpia parabrisas a servo  
