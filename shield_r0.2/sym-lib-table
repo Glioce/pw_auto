@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "LaunchPad")(type "KiCad")(uri "${KIPRJMOD}/LaunchPad.kicad_sym")(options "")(descr ""))
+)

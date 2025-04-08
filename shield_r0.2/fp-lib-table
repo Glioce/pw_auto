@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "LaunchPad")(type "KiCad")(uri "${KIPRJMOD}/LaunchPad.pretty")(options "")(descr ""))
+)
