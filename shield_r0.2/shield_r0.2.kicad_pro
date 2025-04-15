@@ -49,7 +49,7 @@
         "silk_text_upright": false,
         "zones": {
           "45_degree_only": false,
-          "min_clearance": 0.508
+          "min_clearance": 0.5
         }
       },
       "diff_pair_dimensions": [
@@ -59,7 +59,16 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "lib_footprint_mismatch|106680000|71105000|9a095828-8158-4b9a-8afe-55a45c33137d|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|113030000|69840000|bbf0ace7-0385-47ed-b0f9-fe948f0269be|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|116840000|69840000|d3590d73-67fa-4f88-aafa-30df27384307|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|120650000|69840000|b2d1950e-7c77-4aa0-8cd1-606973a3ba75|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|124460000|69840000|c0ee9ea5-7e9e-4f60-977e-ab30e17cabc4|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|68880000|61500000|23366047-d42f-4441-82db-4243f610f15d|00000000-0000-0000-0000-000000000000",
+        "silk_edge_clearance|0|69475000|7b7361fa-b010-485c-af2a-bdba9969d105|f2f2e684-3a86-4e83-a258-c1b3c21bbe21",
+        "silk_edge_clearance|50565000|78740000|7b7361fa-b010-485c-af2a-bdba9969d105|f33ffeeb-5000-40d8-b43c-1895bb7990e1"
+      ],
       "meta": {
         "version": 2
       },
@@ -492,7 +501,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "gerber/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "shield_r0.2.step",
